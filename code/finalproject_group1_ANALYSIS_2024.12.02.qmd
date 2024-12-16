@@ -1,0 +1,121 @@
+---
+title: Figure and analysis production
+date: 2024-12-05
+output-dir: "docs"
+---
+
+```{r, loaddat}
+#| include: false
+#| message: false
+#| warning: false
+
+library(magrittr)
+library(tidyverse)
+library(ggplot2)
+
+dat <- readRDS("data/cleandat.RDS")
+
+```
+
+
+## Figure 1: Trend plot of COVID-19 cases, hospitalizations, and deaths per-100K people 2020-2021 by state.
+
+Divide the pandemic period, January 2020 to December 2024 into waves. Justify your choice with data visualization.
+
+```{r, f1}
+#| message: false
+#| warning: false
+
+dat %>%
+  # compute per-100K population rates for each endpoint
+  mutate(cases=cases/(population/100000),
+         deaths=deaths/(population/100000),
+         hosp=hosp/(population/100000)) %>%
+  # reshape outcomes long, so that they can be grouped by color in the trend plot
+  pivot_longer(cols=c("cases","deaths","hosp"), names_to = "outcome") %>%
+  ggplot() +
+  geom_line(aes(x=date,y=value, color=outcome)) +
+  ylab("Number of COVID-19 cases, hospitalizations, and deaths per-100,000 people") + xlab("Date (week)") +
+  facet_wrap(~state)
+
+p <- dat |> mutate(cases = cases/population*100000,
+  hosp = hosp/population*100000,
+  deaths = deaths/population*100000) |>
+  select(date, cases, hosp, deaths, state, region) |>
+  pivot_longer(c(cases, deaths, hosp), values_to = "rate", names_to = "outcome") |>
+  ggplot(aes(date, rate, color = region, group = state)) +
+  geom_line() +
+  facet_wrap(~outcome, nrow = 3, scales = "free_y")
+
+print(p)
+
+ggsave("../figs/Figure1.png")
+
+```
+
+## Figure 2: Percent of U.S. population vaccinated by week (initial dose and booster), 2020-2021
+
+```{r, f2}
+#| message: false
+#| warning: false
+
+p <- dat |>
+  filter(!is.na(series_complete)) |>
+  group_by(date) |>
+  summarize(first_series = sum(series_complete, na.rm = TRUE)/sum(population)*100,
+            booster = sum(booster, na.rm = TRUE)/sum(population)*100) |>
+  ungroup() |>
+  pivot_longer(-date) |>
+  ggplot(aes(date, value, color = name)) +
+  geom_line() +
+  labs(x = "Date", y = "Percent vaccinated", color = "Vaccine", title = "Rates of vaccination or bosted in the US")
+  
+print(p)
+
+```
+
+## 
+
+```{r, f3}
+#| message: false
+#| warning: false
+
+
+
+```
+
+
+Covid-19 Data
+You can use the data we downloaded in problem set 4.
+
+We want you to examine the entire pandemic, until at least December 1, 2024 which means you will need to obtain population estimates for 2023 and 2024.
+
+For those working in groups we want you to obtain daily or weekly mortality data for each state.
+
+Tasks and questions
+Divide the pandemic period, January 2020 to December 2024 into waves. Justify your choice with data visualization.
+
+For each period compute the deaths rates by state. Describe which states did better or worse during the different periods.
+
+Describe if COVID-19 became less or more virulent across the different periods.
+
+For those working in groups: Estimate excess mortality for each week for each state. Do COVID-19 deaths explain the excess mortality?
+
+For those working in groups: Repeat 2 but for excess mortality instead of COVID-19 deaths.
+
+Excess mortality
+Data
+You can use puerto_rico_counts in the excessmort package.
+
+For those working in groups we want you to wrangle the data from the pdf report shared by the New York Times. https://github.com/c2-d2/pr_mort_official/raw/master/data/Mortalidad-RegDem-2015-17-NYT-part1.pdf
+
+Tasks and questions
+Examine the population sizes by age group and sex. Describe any interesting patterns.
+
+Use data from before 2017 to estimate expected mortality and a standard deviation for each week. Do this by age group and sex. Describe tendencies you observe. You can combine data into bigger age groups if the data show they have similar death rates.
+
+Explore the data to see if there are periods during or before 2017 that appear to have excess mortality. If so, explain and recompute expected death rates removing these periods.
+
+Estimate excess deaths for each week of 2017-2018. Make sure you define the weeks so that one of the weeks starts the day María made landfall. Comment on excess mortality. Which age groups were affected? Were men and women affected differently?
+
+For those working in groups: Extract the data from the PDF shared with NY Times. Comment on how it matches with excessmort package data.
