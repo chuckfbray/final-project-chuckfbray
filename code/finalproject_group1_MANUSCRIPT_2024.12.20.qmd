@@ -1,0 +1,116 @@
+---
+title: "Analysis of COVID-19 cases, hospitalizations, and deaths 2020-2024"
+date: today
+date-format: "DD MMMM, YYYY"
+lang: en-US
+thanks: Thank you, BST 260 teaching team, for your hard work throughout the semester. 
+author: 
+  - Charles Bray\thanks{SM Candidate, Department of Biostatistics, Harvard TH Chan School of Public Health, \href{mailto:bray@hcp.med.harvard.edu}{\texttt{bray@hcp.med.harvard.edu}}}
+
+abstract: |
+  \noindent Purpose: The abstract provides a concise summary of your project, including its objectives, key findings, and significance. Write this section last, after completing all other sections, to accurately reflect your project’s focus and main results. Guidelines: Limit this section to 150-200 words. Briefly outline the purpose of your study, the approach you used, and the primary results and conclusions. The abstract should be clear, succinct, and give readers an immediate understanding of what your project entails.
+abstractspacing: double
+keywords: R, \LaTeX, Quarto
+appendix: false
+fontfamily: libertine
+monofont: inconsolata
+monofontoptions: scaled=.95
+fontsize: 12pt
+spacing: double
+geometry: 
+  - top=2cm
+  - bottom=2cm
+  - left=2cm
+  - right=2cm
+urlcolor: darkblue
+linkcolor: Mahogany
+citecolor: Mahogany
+highlight-style: arrow
+pdf-engine: pdflatex
+format: 
+    pdf:
+      template: article-template.latex
+      toc: false
+      toc-depth: 3
+      number-sections: true
+      css: styles.css
+      cite-method: natbib
+      biblio-style: apalike
+      bibliography: references.bib
+editor:
+  render-on-save: true
+---
+
+\newpage
+
+# Introduction {#sec-introduction}
+
+The SARS-2 COVID-19 pandemic has been a major cause of death and disability in the United States and globally since the first months of 2020. XXX deaths are reported through time of writing, while millions are suspected to have diminished quality of life from the still poorly-understood set of conditions associated with "long COVID". [[DESCRIBE IMPACT OF PANDEMIC]]. It is popular to describe the net consequences of the pandemic but less so to assess the evolution of the virus and the ability of our public health and medical sectors to respond to the morbidity and mortality it caused.
+
+To this end, it is necessary to provide a conceptualization of the distinct stages of the COVID-19 pandemic as it affected the US population, as well as the relative performance of different areas within the US. This paper aims to describe the changing dynamics of the novel coronavirus as such. [^fn-citation]
+
+[^fn-citation]: This is a footnote. You can use any name you want to refer to it. Here is another citation: @freire2018evaluating [10--15]. And this is a URL: <https://github.com/danilofreire/quarto-templates>.
+
+Aenean tortor lacus, pharetra vel posuere eget, gravida non lorem. Phasellus eros ante, dapibus tincidunt nisl eget, iaculis fermentum odio. Suspendisse vitae nunc ac mauris semper molestie. Donec aliquam tellus eros, non interdum eros iaculis ut. Phasellus nisl dui, aliquam ullamcorper ante non, hendrerit molestie risus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan libero a purus sodales, eget vulputate orci pellentesque. Morbi sit amet tellus suscipit, gravida quam eget, mollis tortor. Etiam eu urna dictum, condimentum nunc ut, ullamcorper elit. This is a link to @tbl-markdown:
+
+| A            | New              | Table          |
+|:-------------|:----------------:|---------------:|
+|left-aligned  |centre-aligned    |right-aligned   |
+|*italics*     |~~strikethrough~~ |**boldface**    |
+
+Table: Your Caption {#tbl-markdown}
+
+A \LaTeX \hspace{.01cm} equation. Black-Scholes ([-@eq-black-scholes]) is a mathematical model used to price derivatives:
+
+$$
+\frac{\partial \mathrm C}{ \partial \mathrm t } + \frac{1}{2}\sigma^{2} \mathrm S^{2}
+\frac{\partial^{2} \mathrm C}{\partial \mathrm C^2}
+  + \mathrm r \mathrm S \frac{\partial \mathrm C}{\partial \mathrm S}\ =
+  \mathrm r \mathrm C 
+$$ {#eq-black-scholes} 
+
+1. ordered list
+2. item 2
+    i) sub-item 1
+         A.  sub-sub-item 1
+
+* unordered list
+    * sub-item 1
+
+For a demonstration of a line plot on a polar axis, see @fig-polar.
+
+```{r}
+#| label: fig-polar
+#| fig-cap: "A line plot on a polar axis"
+
+
+
+```
+
+\newpage
+
+# Methods {#sec-methods}
+
+Data were obtained from the Center for Disease Control (CDC) [[data page name]] via API, comprising hospitalizations, deaths, and cases associated with COVID-19 infection and reported weekly at the US state-level.
+
+The study proceeds in three parts. First, the COVID-19 pandemic was split broadly into different phases based on counts of cases, deaths, and hospitalizations across regions of the United States. Following this, the performance of individual US states was described along these measures within each determined wave. Finally, the nature of COVID-19 strains (their virulence and/or strain on hospitals) is determined by comparing the evolution of different measures from early to later waves.
+
+In order to describe the trajectory of the COVID-19 pandemic, a novel approach to defining breakpoints between infection regimes (or "waves" of COVID-19) is developed. DESCRIBE APPROACH HERE. Break least squares as well as Markov Regime Switching (MRS) models were considered (https://pmc.ncbi.nlm.nih.gov/articles/PMC10847870). Ultimately, the complexity of these models or in the case of MRS constraint to just two regimes motivated the development of this identification strategy. [^fn-citation]
+
+
+
+[^fn-citation]: This is a footnote. You can use any name you want to refer to it. Here is another citation: @freire2018evaluating [10--15]. And this is a URL: <https://github.com/danilofreire/quarto-templates>.
+
+
+# Results {#sec-results}
+
+Blah blah blah!
+
+
+![Cases, Deaths, and Hospitalizations over the COVID-19 pandemic in the United States](../figs/Figure1.png){#fig-tri}
+
+# Discussion {#sec-discussion}
+
+This is section [-@sec-introduction]. *Italics*, **bold**, and `typewriter`. Font awesome: {{< fa thumbs-up >}} {{< fa brands bluetooth >}}. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.[^fn-citation]
+
+[^fn-citation]: This is a footnote. You can use any name you want to refer to it. Here is another citation: @freire2018evaluating [10--15]. And this is a URL: <https://github.com/danilofreire/quarto-templates>.

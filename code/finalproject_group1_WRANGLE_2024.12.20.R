@@ -57,7 +57,7 @@ population <- resp_body_json(response, simplifyVector = TRUE) |>
 
 ## what about later years? 2022, 2023, 2024? Obtain from a downloaded file from https://www.census.gov/data/tables/time-series/demo/popest/2020s-state-total.html
 laterpops <-
-  readxl::read_excel("data/NST-EST2023-POP.xlsx") %>%
+  readxl::read_excel("../data/NST-EST2023-POP.xlsx") %>%
   janitor::row_to_names(row_number = 3)
 
 names(laterpops) <- c("state","basepop","pop2020","pop2021","pop2022","pop2023","pop2024")
@@ -86,7 +86,7 @@ regions <- fromJSON(url, simplifyDataFrame = FALSE) |>
   map_df(function(x){
     data.frame(state_name = x$states, region = x$region, region_name =
                  x$region_name)
-    }) |>
+  }) |>
   mutate(region = factor(as.numeric(region))) |>
   mutate(region_name = ifelse(nchar(region_name) > 50, "NY,NJ,PR,USVI",
                               region_name))
@@ -103,25 +103,25 @@ laterpops_long <-
 
 
 ## use the `get_cdc_data` function to request COVID-19 data w/different endpoints form the CDC API
-  casesAPI = "https://data.cdc.gov/resource/pwn4-m3yp.json"
-  hospitalizationsAPI = "https://data.cdc.gov/resource/39z2-9zu6.json"
-  deathsAPI = "https://data.cdc.gov/resource/r8kw-7aab.json"
-  vaccinationsAPI = "https://data.cdc.gov/resource/rh2h-3yt2.json"
-  
-  # read in absolute SARS-COV2 case counts per week
-  cases_raw <- get_cdc_data(casesAPI)
-  
-  # read in daily related hospitalization counts
-  hosp_raw <- get_cdc_data(hospitalizationsAPI)
-  
-  # read in related death counts per week
-  deaths_raw <- get_cdc_data(deathsAPI)
-  
-  # read in daily COVID-19 vaccination counts
-  vax_raw <- get_cdc_data(vaccinationsAPI)
-  
+casesAPI = "https://data.cdc.gov/resource/pwn4-m3yp.json"             # https://data.cdc.gov/Case-Surveillance/Weekly-United-States-COVID-19-Cases-and-Deaths-by-/pwn4-m3yp/about_data
+hospitalizationsAPI = "https://data.cdc.gov/resource/39z2-9zu6.json"  # 
+deathsAPI = "https://data.cdc.gov/resource/r8kw-7aab.json"            # https://data.cdc.gov/NCHS/Provisional-COVID-19-Death-Counts-by-Week-Ending-D/r8kw-7aab/about_data
+vaccinationsAPI = "https://data.cdc.gov/resource/rh2h-3yt2.json"      # 
 
-  
+# read in absolute SARS-COV2 case counts per week
+cases_raw <- get_cdc_data(casesAPI)
+
+# read in daily related hospitalization counts
+hosp_raw <- get_cdc_data(hospitalizationsAPI)
+
+# read in related death counts per week
+deaths_raw <- get_cdc_data(deathsAPI)
+
+# read in daily COVID-19 vaccination counts
+vax_raw <- get_cdc_data(vaccinationsAPI)
+
+
+
 ## describe dataframes obtained: what are the relevant variable fields, and how must I harmonize them?
 
 # 1) the name of the column with state abbreviations,
@@ -137,14 +137,14 @@ laterpops_long <-
 # vax     |     `location`        |     daily     |         `date`         |
 
 
-  
+
 ## in `cases_raw`, keep state, MMWR year, MMWR week, and the total number of cases for that week in that state
 cases <- cases_raw |> mutate(cases = parse_number(new_cases),
-                              date = as_date(ymd_hms(end_date))) |>
-    filter(state %in% population$state) |>
-    mutate(mmwr_week = epiweek(date), mmwr_year = epiyear(date)) |>
-    select(state, mmwr_year, mmwr_week, cases) |>
-    arrange(state, mmwr_year, mmwr_week)
+                             date = as_date(ymd_hms(end_date))) |>
+  filter(state %in% population$state) |>
+  mutate(mmwr_week = epiweek(date), mmwr_year = epiyear(date)) |>
+  select(state, mmwr_year, mmwr_week, cases) |>
+  arrange(state, mmwr_year, mmwr_week)
 
 
 ## clean and standardize hospitalizations data
@@ -173,27 +173,27 @@ deaths <- deaths_raw |>
   mutate(mmwr_week = parse_number(mmwr_week),
          deaths = parse_number(deaths_prov)) |>
   select(state, mmwr_week, mmwr_year, deaths)
-      
+
 
 ## clean and standardize vaccinations data
 vax <- vax_raw |> filter(date_type == "Admin" & location %in%
-                             population$state) |>
+                           population$state) |>
   rename(state = location, series_complete = series_complete_cumulative,
          booster = booster_cumulative) |>
-    mutate(date = as_date(ymd_hms(date)),
-           mmwr_week = as.numeric(mmwr_week), mmwr_year = epiyear(date),
-           series_complete = parse_number(series_complete),
-           booster = parse_number(booster)) |>
-    select(state, date, mmwr_week, mmwr_year, series_complete, booster) |>
-    group_by(state, mmwr_week, mmwr_year) |>
-    summarize(series_complete = max(series_complete),
-              booster = max(booster),
-              .groups = "drop") |>
-    arrange(state, mmwr_year, mmwr_week)
-    
-  # Keep the variables `series_complete` and `booster` along with state and date.
+  mutate(date = as_date(ymd_hms(date)),
+         mmwr_week = as.numeric(mmwr_week), mmwr_year = epiyear(date),
+         series_complete = parse_number(series_complete),
+         booster = parse_number(booster)) |>
+  select(state, date, mmwr_week, mmwr_year, series_complete, booster) |>
+  group_by(state, mmwr_week, mmwr_year) |>
+  summarize(series_complete = max(series_complete),
+            booster = max(booster),
+            .groups = "drop") |>
+  arrange(state, mmwr_year, mmwr_week)
 
-  
+# Keep the variables `series_complete` and `booster` along with state and date.
+
+
 ### join the tables
 all_dates <- data.frame(date = seq(make_date(2020, 1, 25),
                                    make_date(2024, 12, 1),
@@ -217,14 +217,18 @@ dat <- dates_and_pop |>
 ## clean NA values 
 dat %<>%
   mutate(series_complete = ifelse(is.na(series_complete) & mmwr_year==2020, 0, series_complete),
-         booster = ifelse(is.na(booster) & mmwr_year==2020, 0, booster))
+         booster = ifelse(is.na(booster) & mmwr_year==2020, 0, booster),
+         deaths = ifelse(is.na(deaths), 0, deaths),
+         cases = ifelse(is.na(deaths), 0, cases))
 
-## hospitalizations data ends after week 17 of 2024.
-dat %<>%
-  filter()
+## latest weeks where data reported by states?
+dat %>% filter(!is.na(hosp) & mmwr_year==2024) %>% summarize(latestweek=max(mmwr_week,na.rm=T))             # hosps:   17 (2024)
+dat %>% filter(!is.na(series_complete) & mmwr_year==2023) %>% summarize(latestweek=max(mmwr_week,na.rm=T))  # series:  19 (2023)
+dat %>% filter(!is.na(booster) & mmwr_year==2023) %>% summarize(latestweek=max(mmwr_week,na.rm=T))          # booster: 19 (2023)
+dat %>% filter(!is.na(deaths) & mmwr_year==2024) %>% summarize(latestweek=max(mmwr_week,na.rm=T))           # deaths:  48 (2024)
 
 
 # save as RDA to data directory...
 saveRDS(dat,
-        "data/cleandat.RDS")
+        "../data/cleandat.RDS")
 

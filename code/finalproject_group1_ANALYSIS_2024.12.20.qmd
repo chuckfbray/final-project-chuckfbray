@@ -1,0 +1,223 @@
+---
+title: Figure and analysis production
+date: 2024-12-18
+output-dir: "docs"
+---
+
+```{r, loaddat}
+#| include: false
+#| message: false
+#| warning: false
+
+library(magrittr)
+library(tidyverse)
+library(ggplot2)
+library(zoo)
+
+dat <- readRDS("../data/cleandat.RDS")
+
+```
+
+
+## Part I. Divide the pandemic period, January 2020 to December 2024 into waves. Justify your choice with data visualization.
+
+```{r, f1}
+#| message: false
+#| warning: false
+
+## identify local maxima and minima in 9-week (~2 month) windows. THEN, assign waves dynamically: based on 5+ regions having minima within 5 weeks of each other (or roughly half the sliding time window)
+wavedat <- dat |>
+  group_by(date, region_name) |>
+  summarize(cases=sum(cases,na.rm = T),
+            hosp=sum(hosp,na.rm = T),
+            deaths=sum(deaths,na.rm = T),
+            population=sum(population)) |>
+  ungroup() |>
+  mutate(cases = cases/population*100000,
+  hosp = hosp/population*100000,
+  deaths = deaths/population*100000) |>
+  select(date, cases, hosp, deaths, region_name) |>
+  # smooth deaths per cases across regions...
+  pivot_longer(c(cases, deaths, hosp), values_to = "Rate per 100,000 population", names_to = "outcome") |>
+  mutate(outcome=str_to_title(outcome),
+         outcome=ifelse(outcome=="Hosp","Hospitalizations",outcome)) |>
+  ## get local minima/maxima
+  arrange(region_name, outcome, date) |>
+  group_by(region_name, outcome) |>
+  mutate(locmin = ifelse(rollapply(`Rate per 100,000 population`, 9, function(x) which.min(x)==5, fill=NA),
+                         `Rate per 100,000 population`, NA),
+         locmax = ifelse(rollapply(`Rate per 100,000 population`, 9, function(x) which.max(x)==5, fill=NA),
+                         `Rate per 100,000 population`, NA)) |>
+  ungroup() |>
+  ## dynamically define waves
+  arrange(outcome, date, region_name) |>
+  group_by(outcome) |>
+  mutate(clustermins = ifelse(
+                          as.numeric(rollapply(`locmin`, 50, function(x) sum(as.numeric(!is.na(x)))>=5, fill=NA)),
+                          date,
+                          NA),                                                                         # 50 for 10 regions X 5 weeks
+         transition = rollsum(as.numeric(!is.na(`clustermins`)), 50, fill=NA),
+         transmax = ifelse(rollapply(transition, 50, function(x) which.max(x)==25, fill=NA), date, NA),
+         transmax = as.Date(ifelse(row_number()==1, as.Date("2020-01-01"), transmax))#,
+         ## get the last date, for use in creating colored rectangles indicating wave periods
+         # lastdate = tidyr::fill(transmax, .direction="down")
+         ) |>
+  ungroup()
+
+wavedat |> rename(Region=region_name) |> filter(date>=as.Date("2020-03-01")) |>
+  ggplot(aes(date, `Rate per 100,000 population`, color = Region)) +
+  geom_line() +
+  geom_vline(aes(xintercept=as.Date(transmax), y=0), color="red", linetype=3) +
+  geom_point(aes(y=locmin), color="black") +
+  geom_point(aes(y=locmax), color="black", shape=4) +
+  facet_wrap(~outcome, nrow = 3, scales = "free_y") +
+  scale_x_date(date_breaks = "3 months", date_labels ="%Y %b", limits = c(as.Date("2020-03-01"),as.Date("2024-12-01"))) +
+  theme(axis.text.x = element_text(angle=90)) +
+  xlab("Date, weeks")
+  
+  
+  ## shade COVID-19 strain eras...
+  # annotate("rect", xmin = as.Date("2020-01-01"), xmax = as.Date("2020-06-15"),
+  #          ymin = -Inf, ymax = Inf, fill = "red", alpha = 0.2) +
+  # annotate("rect", xmin = as.Date("2020-06-15"), xmax = as.Date("2021-05-30"),
+  #          ymin = -Inf, ymax = Inf, fill = "darkorange", alpha = 0.2) +
+  # annotate("rect", xmin = as.Date("2021-05-30"), xmax = as.Date("2021-11-30"),
+  #          ymin = -Inf, ymax = Inf, fill = "maroon", alpha = 0.2) +
+  # annotate("rect", xmin = as.Date("2021-11-30"), xmax = as.Date("2022-03-30"),
+  #          ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.2) +
+  # annotate("rect", xmin = as.Date("2022-03-30"), xmax = as.Date("2024-12-01"),
+  #          ymin = -Inf, ymax = Inf, fill = "darkgreen", alpha = 0.2) +
+  # xlab("Date, weeks")
+
+
+## save plot
+ggsave("../figs/Figure1.png", width=6, height=8)
+
+
+
+## Determine degrees of change by date, and inflection points
+# changedat <-
+#   dat |> 
+#  group_by(date, region) |>
+#  summarize(cases=sum(cases,na.rm = T),
+#             hosp=sum(hosp,na.rm = T),
+#             deaths=sum(deaths,na.rm = T),
+#             population=sum(population)) |>
+#   ungroup() |>
+#   mutate(cases = cases/population*100000,
+#   hosp = hosp/population*100000,
+#   deaths = deaths/population*100000) |>
+#   select(date, cases, hosp, deaths, region) |>
+#   # smooth deaths per cases across regions...
+#   pivot_longer(c(cases, deaths, hosp), values_to = "Rate per 100,000 population",
+#                names_to = "outcome") |>
+#   mutate(outcome=str_to_title(outcome),
+#          outcome=ifelse(outcome=="Hosp", "Hospitalizations", outcome)) |>
+#   # xxx
+#   arrange(region, outcome, date) |>
+#   group_by(region, outcome) |>
+#   mutate(rowdate = row_number(),
+#          pctchange = ifelse(row_number()>1 & lag(`Rate per 100,000 population`)>0,
+#                                    (`Rate per 100,000 population` - lag(`Rate per 100,000 population`))/
+#                                      lag(`Rate per 100,000 population`),
+#                                    0),
+#          pctchange2 = ifelse(row_number()>2 & lag(pctchange)>0,
+#                                    (pctchange - lag(pctchange))/
+#                                      lag(pctchange),
+#                                    0)
+#          ) |>
+#   ungroup()
+
+# make moving avg pct change and plot...
+# changedat |>
+#   # % change
+#   group_by(region, outcome) |> mutate(pctchange_roll = zoo::rollmean(pctchange, k=3, fill=NA)) |> ungroup() |>
+#   ggplot(aes(date, pctchange_roll, color = region)) +
+#   geom_line() +
+#   facet_wrap(~outcome, nrow = 3, scales = "free_y") +
+#   scale_x_date(date_breaks = "3 months", date_labels ="%Y %b") +
+#   theme(axis.text.x = element_text(angle=90)) +
+#   ## shade COVID-19 strain eras...
+#   annotate("rect", xmin = as.Date("2020-01-01"), xmax = as.Date("2020-06-15"),
+#            ymin = -Inf, ymax = Inf, fill = "red", alpha = 0.2) +
+#   annotate("rect", xmin = as.Date("2020-06-15"), xmax = as.Date("2021-05-30"),
+#            ymin = -Inf, ymax = Inf, fill = "darkorange", alpha = 0.2) +
+#   annotate("rect", xmin = as.Date("2021-05-30"), xmax = as.Date("2021-11-30"),
+#            ymin = -Inf, ymax = Inf, fill = "maroon", alpha = 0.2) +
+#   annotate("rect", xmin = as.Date("2021-11-30"), xmax = as.Date("2022-03-30"),
+#            ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.2) +
+#   annotate("rect", xmin = as.Date("2022-03-30"), xmax = as.Date("2024-12-31"),
+#            ymin = -Inf, ymax = Inf, fill = "darkgreen", alpha = 0.2)  +
+#   ylab("Percentage change in rate, 3-week rolling average") +
+#   xlab("Date, weeks")
+# 
+# ggsave("../out/Figure2.png")
+
+
+
+## tabulate overall nos by period...
+xxx
+
+ggsave("../out/Table1.csv")
+
+```
+
+
+## Part II. For each period compute the deaths rates by state. Describe which states did better or worse during the different periods.
+
+```{r, f2}
+#| message: false
+#| warning: false
+
+xxx
+
+```
+
+
+## Part III. Describe if COVID-19 became less or more virulent across the different periods.
+
+For those working in groups: Estimate excess mortality for each week for each state. Do COVID-19 deaths explain the excess mortality?
+
+For those working in groups: Repeat 2 but for excess mortality instead of COVID-19 deaths.
+
+
+```{r, f3}
+#| message: false
+#| warning: false
+
+xxx
+
+```
+
+
+
+## Figure 2: Percent of U.S. population vaccinated by week (initial dose and booster), 2020-2021
+
+```{r, f2}
+#| message: false
+#| warning: false
+
+p <- dat |>
+  filter(!is.na(series_complete)) |>
+  group_by(date) |>
+  summarize(first_series = sum(series_complete, na.rm = TRUE)/sum(population)*100,
+            booster = sum(booster, na.rm = TRUE)/sum(population)*100) |>
+  ungroup() |>
+  pivot_longer(-date) |>
+  ggplot(aes(date, value, color = name)) +
+  geom_line() +
+  labs(x = "Date", y = "Percent vaccinated", color = "Vaccine", title = "Rates of vaccination or bosted in the US")
+  
+print(p)
+
+```
+
+## 
+
+```{r, f3}
+#| message: false
+#| warning: false
+
+
+
+```
