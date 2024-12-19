@@ -31,7 +31,7 @@ wavedat <- dat |>
   summarize(cases=sum(cases,na.rm = T),
             hosp=sum(hosp,na.rm = T),
             deaths=sum(deaths,na.rm = T),
-            population=sum(population)) |>
+            population=max(population)) |>
   ungroup() |>
   mutate(cases = cases/population*100000,
   hosp = hosp/population*100000,
@@ -90,8 +90,59 @@ wavedat |> rename(Region=region_name) |> filter(date>=as.Date("2020-03-01")) |>
   # xlab("Date, weeks")
 
 
-## save plot
+### save plot
 ggsave("../figs/Figure1.png", width=6, height=8)
+
+
+## wave definitions
+casewaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Cases") %>% select(transmax,outcome) %>%
+  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
+deathwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Hospitalizations") %>% select(transmax,outcome) %>%
+  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
+hospwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Deaths") %>% select(transmax,outcome) %>%
+  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
+waves <- rbind(casewaves,deathwaves,hospwaves)
+
+
+## regional segmentation (based on variation in minima and maxima among regions, by wave)
+variation_min <-
+  wavedat %>%
+  filter(!is.na(locmin)) %>%
+  select(region_name,date,outcome) %>% unique() %>%
+  full_join(waves, relationship="many-to-many") %>% #filter(between(date,begindate,enddate)) %>%
+  mutate(date=as.numeric(date)) %>%
+  # identify closest end/begin dates that minima congregate around
+  mutate(reldate = date-as.numeric(enddate)) %>%
+  group_by(region_name,date,outcome) %>% mutate(mindate= min(abs(reldate))) %>% ungroup() %>%
+  filter(mindate==abs(reldate) & date>as.Date("2020-04-01"))
+
+variation_max <-
+  wavedat %>%
+  filter(!is.na(locmax)) %>%
+  select(region_name,date,outcome) %>% unique() %>%
+  full_join(waves, relationship="many-to-many") %>% filter(between(date,begindate,enddate)) %>%
+  mutate(date=as.numeric(date))
+
+waveminvar <- variation_min %>% group_by(outcome,begindate,enddate) %>% summarize(devdate=sd(date)) %>% ungroup()
+wavemaxvar <- variation_max %>% group_by(outcome,begindate,enddate) %>% summarize(devdate=sd(date)) %>% ungroup()
+
+
+
+### save table defining wave dates
+fwrite("../figs/Table1.csv")
+
+### also save regional wave variability boxplots...
+
+# boxplots
+ggplot(variation_min %>% filter(begindate<as.Date("2022-04-10"))# %>% mutate(begindate=paste0("Wave starting ",begindate))
+       ,
+       aes(group=begindate, x=factor(begindate), y=abs(reldate))) +
+  geom_boxplot() +
+  facet_grid(~outcome) +
+  theme(axis.text.x = element_text(angle=90)) +
+  xlab("Wave starting date") + ylab("Number of days removed from inter-regional median wave end date")
+
+ggsave("../figs/Figure2.png", width=6, height=8)
 
 
 
@@ -169,7 +220,9 @@ ggsave("../out/Table1.csv")
 #| message: false
 #| warning: false
 
-xxx
+statelevel <- dat %>% left_join()
+
+wavedat
 
 ```
 
