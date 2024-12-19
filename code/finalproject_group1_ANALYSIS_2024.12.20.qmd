@@ -44,16 +44,24 @@ wavedat <- dat |>
   ## get local minima/maxima
   arrange(region_name, outcome, date) |>
   group_by(region_name, outcome) |>
-  mutate(locmin = ifelse(rollapply(`Rate per 100,000 population`, 9, function(x) which.min(x)==5, fill=NA),
+  # look for min/max in 9-week windows
+  mutate(locmin = ifelse(rollapply(`Rate per 100,000 population`, 9, function(x) which.min(x)==5, fill=NA), 
                          `Rate per 100,000 population`, NA),
          locmax = ifelse(rollapply(`Rate per 100,000 population`, 9, function(x) which.max(x)==5, fill=NA),
                          `Rate per 100,000 population`, NA)) |>
-  ungroup() |>
-  ## dynamically define waves
+  ungroup()
+
+
+## dynamically define waves
+wavedat <- wavedat |>
   arrange(outcome, date, region_name) |>
+  # gather number of distinct regions reporting each week
+  group_by(date,outcome) |>
+  mutate(nregions = n_distinct(region_name)) |>
+  ungroup() |>
   group_by(outcome) |>
   mutate(clustermins = ifelse(
-                          as.numeric(rollapply(`locmin`, 50, function(x) sum(as.numeric(!is.na(x)))>=5, fill=NA)),
+                          as.numeric(rollapply(`locmin`, 50, function(x) sum(as.numeric(!is.na(x))) >= min(nregions)/2, fill=NA)),
                           date,
                           NA),                                                                         # 50 for 10 regions X 5 weeks
          transition = rollsum(as.numeric(!is.na(`clustermins`)), 50, fill=NA),
@@ -97,10 +105,13 @@ ggsave("../figs/Figure1.png", width=6, height=8)
 ## wave definitions
 casewaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Cases") %>% select(transmax,outcome) %>%
   mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
-deathwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Hospitalizations") %>% select(transmax,outcome) %>%
+
+deathwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Deaths") %>% select(transmax,outcome) %>%
   mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
-hospwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Deaths") %>% select(transmax,outcome) %>%
+
+hospwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Hospitalizations") %>% select(transmax,outcome) %>%
   mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
+
 waves <- rbind(casewaves,deathwaves,hospwaves)
 
 
@@ -129,16 +140,18 @@ wavemaxvar <- variation_max %>% group_by(outcome,begindate,enddate) %>% summariz
 
 
 ### save table defining wave dates
-fwrite("../figs/Table1.csv")
+# fwrite("../figs/Table1.csv")
 
 ### also save regional wave variability boxplots...
 
 # boxplots
-ggplot(variation_min %>% filter(begindate<as.Date("2022-04-10"))# %>% mutate(begindate=paste0("Wave starting ",begindate))
+ggplot(variation_min %>% filter(outcome!="Deaths" #& begindate<as.Date("2022-04-10")
+                                )# %>%
+       # mutate(begindate=paste0("Wave starting ",begindate))
        ,
        aes(group=begindate, x=factor(begindate), y=abs(reldate))) +
   geom_boxplot() +
-  facet_grid(~outcome) +
+  facet_grid(~outcome, scales = "free") +
   theme(axis.text.x = element_text(angle=90)) +
   xlab("Wave starting date") + ylab("Number of days removed from inter-regional median wave end date")
 
