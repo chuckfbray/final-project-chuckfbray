@@ -11,6 +11,9 @@ output-dir: "docs"
 
 library(magrittr)
 library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(data.table)
 library(ggplot2)
 library(zoo)
 
@@ -25,25 +28,26 @@ dat <- readRDS("../data/cleandat.RDS")
 #| message: false
 #| warning: false
 
+
 ## identify local maxima and minima in 9-week (~2 month) windows. THEN, assign waves dynamically: based on 5+ regions having minima within 5 weeks of each other (or roughly half the sliding time window)
 wavedat <- dat |>
-  group_by(date, region_name) |>
-  summarize(cases=sum(cases,na.rm = T),
+  dplyr::group_by(date, region_name) |>
+  dplyr::summarise(cases=sum(cases,na.rm = T),
             hosp=sum(hosp,na.rm = T),
             deaths=sum(deaths,na.rm = T),
             population=max(population)) |>
   ungroup() |>
   mutate(cases = cases/population*100000,
-  hosp = hosp/population*100000,
-  deaths = deaths/population*100000) |>
-  select(date, cases, hosp, deaths, region_name) |>
+         hosp = hosp/population*100000,
+         deaths = deaths/population*100000) |>
+  dplyr::select(date, cases, hosp, deaths, region_name) |>
   # smooth deaths per cases across regions...
   pivot_longer(c(cases, deaths, hosp), values_to = "Rate per 100,000 population", names_to = "outcome") |>
   mutate(outcome=str_to_title(outcome),
          outcome=ifelse(outcome=="Hosp","Hospitalizations",outcome)) |>
   ## get local minima/maxima
   arrange(region_name, outcome, date) |>
-  group_by(region_name, outcome) |>
+  dplyr::group_by(region_name, outcome) |>
   # look for min/max in 9-week windows
   mutate(locmin = ifelse(rollapply(`Rate per 100,000 population`, 9, function(x) which.min(x)==5, fill=NA), 
                          `Rate per 100,000 population`, NA),
@@ -56,10 +60,10 @@ wavedat <- dat |>
 wavedat <- wavedat |>
   arrange(outcome, date, region_name) |>
   # gather number of distinct regions reporting each week
-  group_by(date,outcome) |>
+  dplyr::group_by(date,outcome) |>
   mutate(nregions = n_distinct(region_name)) |>
   ungroup() |>
-  group_by(outcome) |>
+  dplyr::group_by(outcome) |>
   mutate(clustermins = ifelse(
                           as.numeric(rollapply(`locmin`, 50, function(x) sum(as.numeric(!is.na(x))) >= min(nregions)/2, fill=NA)),
                           date,
@@ -72,7 +76,7 @@ wavedat <- wavedat |>
          ) |>
   ungroup()
 
-wavedat |> rename(Region=region_name) |> filter(date>=as.Date("2020-03-01")) |>
+wavedat |> dplyr::rename(Region=region_name) |> filter(date>=as.Date("2020-03-01")) |>
   ggplot(aes(date, `Rate per 100,000 population`, color = Region)) +
   geom_line() +
   geom_vline(aes(xintercept=as.Date(transmax), y=0), color="red", linetype=3) +
@@ -103,14 +107,25 @@ ggsave("../figs/Figure1.png", width=6, height=8)
 
 
 ## wave definitions
-casewaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Cases") %>% select(transmax,outcome) %>%
-  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
+wavedat %<>% mutate(transmax = as.Date(transmax))
 
-deathwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Deaths") %>% select(transmax,outcome) %>%
-  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
+casewaves <- wavedat %>%
+  dplyr::filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Cases") %>%
+  dplyr::select(transmax,outcome) %>%
+  dplyr::mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>%
+  dplyr::rename(enddate = transmax)
 
-hospwaves <- wavedat %>% filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Hospitalizations") %>% select(transmax,outcome) %>%
-  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>% rename(enddate = transmax)
+deathwaves <- wavedat %>%
+  dplyr::filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Deaths") %>%
+  dplyr::select(transmax,outcome) %>%
+  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>%
+  dplyr::rename(enddate = transmax)
+
+hospwaves <- wavedat %>%
+  dplyr::filter(!is.na(transmax) & transmax>as.Date("2020-03-01") & outcome=="Hospitalizations") %>%
+  dplyr::select(transmax,outcome) %>%
+  mutate(begindate = lag(transmax, default=as.Date("2019-12-31"))+1) %>%
+  dplyr::rename(enddate = transmax)
 
 waves <- rbind(casewaves,deathwaves,hospwaves)
 
@@ -119,23 +134,24 @@ waves <- rbind(casewaves,deathwaves,hospwaves)
 variation_min <-
   wavedat %>%
   filter(!is.na(locmin)) %>%
-  select(region_name,date,outcome) %>% unique() %>%
-  full_join(waves, relationship="many-to-many") %>% #filter(between(date,begindate,enddate)) %>%
+  dplyr::select(region_name,date,outcome) %>% unique() %>%
+  full_join(waves, relationship="many-to-many") %>%
   mutate(date=as.numeric(date)) %>%
   # identify closest end/begin dates that minima congregate around
   mutate(reldate = date-as.numeric(enddate)) %>%
-  group_by(region_name,date,outcome) %>% mutate(mindate= min(abs(reldate))) %>% ungroup() %>%
+  dplyr::group_by(region_name,date,outcome) %>% mutate(mindate= min(abs(reldate))) %>% ungroup() %>%
   filter(mindate==abs(reldate) & date>as.Date("2020-04-01"))
 
 variation_max <-
   wavedat %>%
   filter(!is.na(locmax)) %>%
-  select(region_name,date,outcome) %>% unique() %>%
-  full_join(waves, relationship="many-to-many") %>% filter(between(date,begindate,enddate)) %>%
+  dplyr::select(region_name,date,outcome) %>% unique() %>%
+  full_join(waves, relationship="many-to-many") %>%
+  dplyr::filter(between(as.numeric(date), as.numeric(begindate), as.numeric(enddate))) %>%
   mutate(date=as.numeric(date))
 
-waveminvar <- variation_min %>% group_by(outcome,begindate,enddate) %>% summarize(devdate=sd(date)) %>% ungroup()
-wavemaxvar <- variation_max %>% group_by(outcome,begindate,enddate) %>% summarize(devdate=sd(date)) %>% ungroup()
+waveminvar <- variation_min %>% dplyr::group_by(outcome,begindate,enddate) %>% dplyr::summarise(devdate=sd(date)) %>% ungroup()
+wavemaxvar <- variation_max %>% dplyr::group_by(outcome,begindate,enddate) %>% dplyr::summarise(devdate=sd(date)) %>% ungroup()
 
 
 
@@ -145,10 +161,7 @@ wavemaxvar <- variation_max %>% group_by(outcome,begindate,enddate) %>% summariz
 ### also save regional wave variability boxplots...
 
 # boxplots
-ggplot(variation_min %>% filter(outcome!="Deaths" #& begindate<as.Date("2022-04-10")
-                                )# %>%
-       # mutate(begindate=paste0("Wave starting ",begindate))
-       ,
+ggplot(variation_min %>% dplyr::filter(outcome!="Deaths" & begindate < as.Date("2022-10-30")),
        aes(group=begindate, x=factor(begindate), y=abs(reldate))) +
   geom_boxplot() +
   facet_grid(~outcome, scales = "free") +
@@ -162,8 +175,8 @@ ggsave("../figs/Figure2.png", width=6, height=8)
 ## Determine degrees of change by date, and inflection points
 # changedat <-
 #   dat |> 
-#  group_by(date, region) |>
-#  summarize(cases=sum(cases,na.rm = T),
+#  dplyr::group_by(date, region) |>
+#  dplyr::summarise(cases=sum(cases,na.rm = T),
 #             hosp=sum(hosp,na.rm = T),
 #             deaths=sum(deaths,na.rm = T),
 #             population=sum(population)) |>
@@ -171,7 +184,7 @@ ggsave("../figs/Figure2.png", width=6, height=8)
 #   mutate(cases = cases/population*100000,
 #   hosp = hosp/population*100000,
 #   deaths = deaths/population*100000) |>
-#   select(date, cases, hosp, deaths, region) |>
+#   dplyr::select(date, cases, hosp, deaths, region) |>
 #   # smooth deaths per cases across regions...
 #   pivot_longer(c(cases, deaths, hosp), values_to = "Rate per 100,000 population",
 #                names_to = "outcome") |>
@@ -179,7 +192,7 @@ ggsave("../figs/Figure2.png", width=6, height=8)
 #          outcome=ifelse(outcome=="Hosp", "Hospitalizations", outcome)) |>
 #   # xxx
 #   arrange(region, outcome, date) |>
-#   group_by(region, outcome) |>
+#   dplyr::group_by(region, outcome) |>
 #   mutate(rowdate = row_number(),
 #          pctchange = ifelse(row_number()>1 & lag(`Rate per 100,000 population`)>0,
 #                                    (`Rate per 100,000 population` - lag(`Rate per 100,000 population`))/
@@ -195,7 +208,7 @@ ggsave("../figs/Figure2.png", width=6, height=8)
 # make moving avg pct change and plot...
 # changedat |>
 #   # % change
-#   group_by(region, outcome) |> mutate(pctchange_roll = zoo::rollmean(pctchange, k=3, fill=NA)) |> ungroup() |>
+#   dplyr::group_by(region, outcome) |> mutate(pctchange_roll = zoo::rollmean(pctchange, k=3, fill=NA)) |> ungroup() |>
 #   ggplot(aes(date, pctchange_roll, color = region)) +
 #   geom_line() +
 #   facet_wrap(~outcome, nrow = 3, scales = "free_y") +
@@ -218,11 +231,14 @@ ggsave("../figs/Figure2.png", width=6, height=8)
 # ggsave("../out/Figure2.png")
 
 
+## tabulate overall nos by period... using Cases.
+casewavedef <- variation_min %>% dplyr::filter(outcome=="Cases" & begindate<as.Date("2022-10-30")) %>%
+  dplyr::rename(regional_min=date) %>%
+  mutate(enddate = ifelse(begindate==max(begindate), as.Date("2024-12-31"), enddate)) %>%
+  dplyr::select(region_name, begindate, enddate) %>%
+  unique()
 
-## tabulate overall nos by period...
-xxx
-
-ggsave("../out/Table1.csv")
+fwrite(casewavedef, "../figs/Table1.csv")
 
 ```
 
@@ -233,57 +249,78 @@ ggsave("../out/Table1.csv")
 #| message: false
 #| warning: false
 
-statelevel <- dat %>% left_join()
+## merge case wave starts/ends
+statelevel <- dat %>% left_join(casewavedef, relationship="many-to-many") %>%
+  dplyr::filter(between(as.numeric(date), as.numeric(begindate), as.numeric(enddate)))
 
-wavedat
+## summarize state-level death rates, by wave.
+statelevel_Deaths <-
+  statelevel %>%
+  group_by(state, state_name, begindate, enddate, region_name) %>%
+  summarise(deathsum = sum(deaths,na.rm=T),
+            meanpop = mean(population)) %>%
+  ungroup() %>%
+  mutate(deathrate = deathsum/meanpop)
+
+## classify broader pandemic waves
+statelevel_Deaths %<>%
+  mutate(phase = case_when(year(begindate) < 2021 ~ "2020 waves",
+                           year(begindate) < 2022 & year(begindate) > 2020 ~ "2021 waves",
+                           T ~ "Post-acute")
+  )
+
+
+## visualize states, grouping by region and wave
+library(Hmisc)
+
+statelevel_Deaths %>%
+  ggplot(aes(region_name, deathrate, group = region_name)) +
+  geom_jitter(aes(color = region_name),
+    size = 3,
+    alpha = 0.8
+  ) +
+  stat_summary(
+    fun.data = "mean_sdl", fun.args = list(mult = 1)
+  ) +
+  # scale_color_manual(values = c("darkorange", "purple")) +
+  facet_wrap(~begindate, ncol=4) +
+  theme(
+    panel.spacing.x = unit(0, "pt"),
+    strip.placement = "outside",
+    strip.background.x = element_blank(),
+    axis.text.x = element_blank(),
+    
+  ) #+
+  # guides(color = "none")
+
+ggsave("../figs/Figure2.png", width=6, height=8)
+
+
+### rank states by death rate, for each of the seven waves
+statelevel_Deaths %<>%
+  arrange(begindate, -deathrate)
+
+statelevel_Deaths %<>%
+  group_by(begindate) %>% mutate(StateRank = row_number()) %>% ungroup()
+
+statelevel_Deaths_wide <-
+  statelevel_Deaths %>% pivot_wider(id_cols=StateRank, names_from = begindate, values_from = c("state","deathrate"))
+
+fwrite(statelevel_Deaths_wide, "../figs/Table2.csv")
 
 ```
 
 
 ## Part III. Describe if COVID-19 became less or more virulent across the different periods.
 
-For those working in groups: Estimate excess mortality for each week for each state. Do COVID-19 deaths explain the excess mortality?
-
-For those working in groups: Repeat 2 but for excess mortality instead of COVID-19 deaths.
-
-
 ```{r, f3}
 #| message: false
 #| warning: false
 
-xxx
-
-```
+##
 
 
-
-## Figure 2: Percent of U.S. population vaccinated by week (initial dose and booster), 2020-2021
-
-```{r, f2}
-#| message: false
-#| warning: false
-
-p <- dat |>
-  filter(!is.na(series_complete)) |>
-  group_by(date) |>
-  summarize(first_series = sum(series_complete, na.rm = TRUE)/sum(population)*100,
-            booster = sum(booster, na.rm = TRUE)/sum(population)*100) |>
-  ungroup() |>
-  pivot_longer(-date) |>
-  ggplot(aes(date, value, color = name)) +
-  geom_line() +
-  labs(x = "Date", y = "Percent vaccinated", color = "Vaccine", title = "Rates of vaccination or bosted in the US")
-  
-print(p)
-
-```
-
-## 
-
-```{r, f3}
-#| message: false
-#| warning: false
-
-
+###
+fwrite(casewavedef, "../figs/Table3.csv")
 
 ```

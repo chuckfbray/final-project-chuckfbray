@@ -48,7 +48,7 @@ The SARS-2 COVID-19 pandemic has been a major cause of death and disability in t
 
 To this end, it is necessary to provide a conceptualization of the distinct stages of the COVID-19 pandemic as it affected the US population, as well as the relative performance of different areas within the US. This paper aims to describe the changing dynamics of the novel coronavirus as such.
 
-Aenean tortor lacus, pharetra vel posuere eget, gravida non lorem. Phasellus eros ante, dapibus tincidunt nisl eget, iaculis fermentum odio. Suspendisse vitae nunc ac mauris semper molestie. Donec aliquam tellus eros, non interdum eros iaculis ut. Phasellus nisl dui, aliquam ullamcorper ante non, hendrerit molestie risus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce accumsan libero a purus sodales, eget vulputate orci pellentesque. Morbi sit amet tellus suscipit, gravida quam eget, mollis tortor. Etiam eu urna dictum, condimentum nunc ut, ullamcorper elit. This is a link to @tbl-markdown:
+This is a link to @tbl-markdown:
 
 | A            |        New        |         Table |
 |:-------------|:-----------------:|--------------:|
@@ -114,4 +114,4 @@ XXX
 
 # Discussion {#sec-discussion}
 
-This is section [-@sec-introduction]. *Italics*, **bold**, and `typewriter`. Font awesome: {{< fa thumbs-up >}} {{< fa brands bluetooth >}}. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+DISCUSSION.

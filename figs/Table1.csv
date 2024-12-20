@@ -1,0 +1,65 @@
+region_name,begindate,enddate
+Southeast,2020-01-01,18419
+Pacific Northwest,2020-01-01,18419
+Mountain States,2020-01-01,18419
+Central Plains,2020-01-01,18419
+Midwest,2020-01-01,18419
+Mid-Atlantic,2020-01-01,18419
+"NY,NJ,PR,USVI",2020-01-01,18419
+New England,2020-01-01,18419
+Mountain States,2020-06-07,18517
+Mid-Atlantic,2020-06-07,18517
+"NY,NJ,PR,USVI",2020-06-07,18517
+New England,2020-06-07,18517
+Pacific Northwest,2020-06-07,18517
+South Central,2020-06-07,18517
+Southeast,2020-06-07,18517
+Pacific,2020-06-07,18517
+"NY,NJ,PR,USVI",2020-09-13,18699
+Midwest,2020-09-13,18699
+Mid-Atlantic,2020-09-13,18699
+New England,2020-09-13,18699
+Pacific Northwest,2020-09-13,18699
+Central Plains,2020-09-13,18699
+Mountain States,2020-09-13,18699
+South Central,2020-09-13,18699
+Central Plains,2021-03-14,18804
+Pacific,2021-03-14,18804
+South Central,2021-03-14,18804
+Mid-Atlantic,2021-03-14,18804
+Mountain States,2021-03-14,18804
+New England,2021-03-14,18804
+Southeast,2021-03-14,18804
+Midwest,2021-03-14,18804
+"NY,NJ,PR,USVI",2021-03-14,18804
+Pacific Northwest,2021-03-14,18804
+Central Plains,2021-06-27,18930
+Pacific,2021-06-27,18930
+Midwest,2021-06-27,18930
+"NY,NJ,PR,USVI",2021-06-27,18930
+New England,2021-06-27,18930
+Mid-Atlantic,2021-06-27,18930
+South Central,2021-06-27,18930
+Southeast,2021-06-27,18930
+Mountain States,2021-06-27,18930
+Pacific Northwest,2021-06-27,18930
+"NY,NJ,PR,USVI",2021-10-31,19077
+New England,2021-10-31,19077
+Midwest,2021-10-31,19077
+Southeast,2021-10-31,19077
+Central Plains,2021-10-31,19077
+Mid-Atlantic,2021-10-31,19077
+Mountain States,2021-10-31,19077
+Pacific Northwest,2021-10-31,19077
+Pacific,2021-10-31,19077
+South Central,2021-10-31,19077
+New England,2022-03-27,20088
+"NY,NJ,PR,USVI",2022-03-27,20088
+Pacific Northwest,2022-03-27,20088
+Midwest,2022-03-27,20088
+Mountain States,2022-03-27,20088
+Central Plains,2022-03-27,20088
+Pacific,2022-03-27,20088
+South Central,2022-03-27,20088
+Southeast,2022-03-27,20088
+Mid-Atlantic,2022-03-27,20088
