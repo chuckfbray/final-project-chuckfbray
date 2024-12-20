@@ -44,45 +44,23 @@ editor:
 
 # Introduction {#sec-introduction}
 
-The SARS-2 COVID-19 pandemic has been a major cause of death and disability in the United States and globally since the first months of 2020. XXX deaths are reported through time of writing, while millions are suspected to have diminished quality of life from the still poorly-understood set of conditions associated with "long COVID". \[\[DESCRIBE IMPACT OF PANDEMIC\]\]. It is popular to describe the net consequences of the pandemic but less so to assess the evolution of the virus and the ability of our public health and medical sectors to respond to the morbidity and mortality it caused.
+The SARS-2 COVID-19 pandemic has been a major cause of death and disability in the United States and globally since the first months of 2020. Over 1 million deaths are reported through time of writing in the United States, according to the World Health Organization, while millions are suspected to have diminished quality of life from the still poorly-understood set of conditions associated with "long COVID". @WHOcite @longCovid. It is popular to describe the net consequences of the pandemic but less so to assess the evolution of the virus and the evolving ability of our public health and medical sectors to respond to the morbidity and mortality it caused, as measured through deaths, hospitalizations, and rates of infection.
+
+Systematizing the way in which we assess individual phases of a pandemic is important for several reasons:
+
+*Standardized definitions*: Researchers can compare data and findings in a consistent way rather than contrasting conclusions that rely on novel estimations of pandemic phases.
+
+*Inter-regional comparability*: With consistent wave definitions, it is possible to compare regional or state-level responses within the U.S. This allows for the identifcation of what works well and what needs to improve as far as local public health responses (e.g., were school lock-downs too long or too short in certain areas, what was the effect of masking during each phase of the pandemic, etc.).
+
+*Data Stratification*: Identifying waves allows for stratified analysis, where key metrics like case counts, hospitalizations, and deaths can be studied in relation to specific contextual factors such as the emergence of new variants, policy changes, or healthcare capacity.
+
+*Clear historical record of pandemic trajectory*: By clearly defining waves, a framework is created for understanding how the pandemic changed over time, which allows us to contextualize the public health response based on how the virus's behavior and human responses evolved.
+
+*Future pandemic readiness*: The identification of distinct waves gives public health officials and other relevant decisionmakers historical context that leads to better planning and resource allocation in anticipation of future COVID-19 surges or other viruses that may behave similarly.
+
+Some investigators have aimed to address this gap in knowledge by defining "waves", or distinct phases characterizing the COVID-19 pandemic by the pattern or trajectory of infection as well as the predominant viral strain. For instance, Iran's experience of the pandemic was characterized by five distinct phases according to Amin et al. (2022) through the end of 2022, as defined by public health communications and increases in case counts following times of stability. @Iranwaves Another group of researchers in Chile defined the start and end of waves based on sustained increase or decrease as well as case rates achieving a certain threshold. @Chilewaves Other researchers employed more sophisticated methods, including Break Least Squares, to define two waves in 2020 in North America each lasting roughly 50 days. @covidtimecite However, little research exists to clarify times of transition between waves of COVID-19 in the United States, strictly speaking.
 
 To this end, it is necessary to provide a conceptualization of the distinct stages of the COVID-19 pandemic as it affected the US population, as well as the relative performance of different areas within the US. This paper aims to describe the changing dynamics of the novel coronavirus as such.
-
-This is a link to @tbl-markdown:
-
-| A            |        New        |         Table |
-|:-------------|:-----------------:|--------------:|
-| left-aligned |  centre-aligned   | right-aligned |
-| *italics*    | ~~strikethrough~~ |  **boldface** |
-
-: Your Caption {#tbl-markdown}
-
-A \LaTeX \hspace{.01cm} equation. Black-Scholes ([-@eq-black-scholes]) is a mathematical model used to price derivatives:
-
-$$
-\frac{\partial \mathrm C}{ \partial \mathrm t } + \frac{1}{2}\sigma^{2} \mathrm S^{2}
-\frac{\partial^{2} \mathrm C}{\partial \mathrm C^2}
-  + \mathrm r \mathrm S \frac{\partial \mathrm C}{\partial \mathrm S}\ =
-  \mathrm r \mathrm C 
-$$ {#eq-black-scholes}
-
-1.  ordered list
-2.  item 2
-    i)  sub-item 1
-        A.  sub-sub-item 1
-
--   unordered list
-    -   sub-item 1
-
-For a demonstration of a line plot on a polar axis, see @fig-polar.
-
-```{r}
-#| label: fig-polar
-#| fig-cap: "A line plot on a polar axis"
-
-
-
-```
 
 \newpage
 
