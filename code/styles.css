@@ -2,3 +2,7 @@ h1::before {
   content: counter(section, upper-roman) ". ";
   counter-increment: section;
 }
+
+.citation .author {
+    display: none;
+}

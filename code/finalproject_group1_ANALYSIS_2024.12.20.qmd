@@ -76,6 +76,7 @@ wavedat <- wavedat |>
          ) |>
   ungroup()
 
+
 wavedat |> dplyr::rename(Region=region_name) |> filter(date>=as.Date("2020-03-01")) |>
   ggplot(aes(date, `Rate per 100,000 population`, color = Region)) +
   geom_line() +
@@ -83,9 +84,17 @@ wavedat |> dplyr::rename(Region=region_name) |> filter(date>=as.Date("2020-03-01
   geom_point(aes(y=locmin), color="black") +
   geom_point(aes(y=locmax), color="black", shape=4) +
   facet_wrap(~outcome, nrow = 3, scales = "free_y") +
-  scale_x_date(date_breaks = "3 months", date_labels ="%Y %b", limits = c(as.Date("2020-03-01"),as.Date("2024-12-01"))) +
-  theme(axis.text.x = element_text(angle=90)) +
-  xlab("Date, weeks")
+  scale_x_date(date_breaks = "3 months", date_labels ="%Y %b",
+               limits = c(as.Date("2020-03-01"), as.Date("2024-12-01"))) +
+  theme(axis.text.x = element_text(angle=90),
+        legend.position = "top",
+        legend.text = element_text(size=8)) +
+  xlab("Date, weeks") +
+  geom_label(aes(x=as.Date(transmax),
+                 y=case_when(outcome=="Deaths"~35, outcome=="Cases"~6000, T~175),
+                 label=as.Date(transmax)), size=2, color="black", check_overlap = TRUE,
+             position = position_dodge()) +
+  coord_cartesian(xlim=c(as.Date("2020-03-01"), as.Date("2024-12-01")))
   
   
   ## shade COVID-19 strain eras...
@@ -103,7 +112,7 @@ wavedat |> dplyr::rename(Region=region_name) |> filter(date>=as.Date("2020-03-01
 
 
 ### save plot
-ggsave("../figs/Figure1.png", width=6, height=8)
+ggsave("../figs/Figure1.png", width=7, height=9)
 
 
 ## wave definitions

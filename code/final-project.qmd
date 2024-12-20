@@ -1,5 +1,5 @@
 ---
-title: "Analysis of COVID-19 cases, hospitalizations, and deaths 2020-2024"
+title: "Analysis of COVID-19 phases and virulence 2020-2024"
 date: today
 date-format: "DD MMMM, YYYY"
 lang: en-US
@@ -40,11 +40,33 @@ editor:
   render-on-save: true
 ---
 
+```{r, warning=FALSE, include=FALSE}
+
+library(magrittr)
+library(dplyr)
+library(data.table)
+library(kableExtra)
+
+casewavedef <- fread("../figs/Table1.csv") %>% select(begindate,enddate) %>% unique()
+
+minwavebegin <- as.character(min(pull(casewavedef,begindate)))
+minwaveend <- min(pull(casewavedef,enddate))
+wavecount <- n_distinct(pull(casewavedef,begindate))
+
+statedeathtab <-
+  fread("../figs/Table2.csv") %>%
+  filter(StateRank<=10) %>%
+  .[,c(1:8)] %>% rename(`Mortality (rank)`=StateRank)
+
+names(statedeathtab) <- gsub("state_","Wave starting ",names(statedeathtab))
+
+```
+
 \newpage
 
 # Introduction {#sec-introduction}
 
-The SARS-2 COVID-19 pandemic has been a major cause of death and disability in the United States and globally since the first months of 2020. Over 1 million deaths are reported through time of writing in the United States, according to the World Health Organization, while millions are suspected to have diminished quality of life from the still poorly-understood set of conditions associated with "long COVID". @WHOcite @longCovid. It is popular to describe the net consequences of the pandemic but less so to assess the evolution of the virus and the evolving ability of our public health and medical sectors to respond to the morbidity and mortality it caused, as measured through deaths, hospitalizations, and rates of infection.
+The SARS-2 COVID-19 pandemic has been a major cause of death and disability in the United States and globally since the first months of 2020. Over 1 million deaths are reported through time of writing in the United States, according to the World Health Organization, while millions are suspected to have diminished quality of life from the still poorly-understood set of conditions associated with "long COVID". @WHOcite] @longCovid. It is popular to describe the net consequences of the pandemic but less so to assess the evolution of the virus and the evolving ability of our public health and medical sectors to respond to the morbidity and mortality it caused, as measured through deaths, hospitalizations, and rates of infection.
 
 Systematizing the way in which we assess individual phases of a pandemic is important for several reasons:
 
@@ -78,17 +100,31 @@ Prior to algorithm development, (1) break least squares as well as (2) Markov Re
 
 **Waves**
 
-The COVID-19 pandemic in the US was divided into \[\[X\]\] waves according to case counts and hospitalizations. This was determined as appropriate based on the persistent lag of deaths data relative to these two metrics, and the fact that death timing relative to time of infection is known to exhibit much greater variance than symptoms or hospitalization relative to time of infection @covidtimecite. See Figure 1 below for a visualization of wave boundaries, where solid black dots indicate local minima in per-population rates of cases or hospitalizations by region, while black crosses indicate local maxima. A dotted red line shows the inter-regional wave cutoff (where one wave ends and another begins).
+The COVID-19 pandemic in the US was divided into 7 waves from January 1, 2020 through December 1, 2024 according to case and hospitalization rates. The choice of these two measures as opposed to deaths was determined to be appropriate based on the persistent lag of deaths data relative to cases and hospitalizations, and the fact that death timing relative to time of infection is known to exhibit much greater variance than symptoms or hospitalization timing relative to time of infection @deathtiming. See Figure 1 below for a visualization of wave boundaries, where solid black dots indicate local minima in per-population rates of cases or hospitalizations by region, while black crosses indicate local maxima. Each dotted red line shows the inter-regional wave cutoff (where one wave ends and another begins); there is no assumed interim period between waves (i.e., one wave ends the day before another begins).
 
-The first wave occurred DATE to DATE, which we classify as the "Originator" wave. This was succeeded by the \_\_ and \_\_ waves, which occurred DATE-DATE and DATE-DATE, respectively. Finally, while there continued to be local minima and maxima that could be considered to delineate further waves, it was decided that the low number of deaths along with moderation in number of hospitalizations characterized a "post-acute" phase of the pandemic, starting at DATE and extending through the end of data collection, December 1, 2024.
+![Definition of candidate COVID-19 waves based on regional minima and maxima]("../figs/Figure1.png"){fig-align="center"}
+
+The first wave occurred roughly March 2020 to June 6, 2020, which we classify as the "Originator" wave. This was succeeded by the Second and Third waves, which occurred `r casewavedef$begindate[2]` to `r as.Date(casewavedef$enddate[2])` and `r casewavedef$begindate[3]` to `r as.Date(casewavedef$enddate[3])`, respectively. The fourth wave, which we can call the Delta wave based on known speciation @Deltatime, occurred `r casewavedef$begindate[4]` to `r as.Date(casewavedef$enddate[4])`. This was followed by the extremely transmissible Omicron variant, which characterized the wave lasting `r casewavedef$begindate[5]` to `r as.Date(casewavedef$enddate[5])`. Finally, while there continued to be local minima and maxima that could be considered to delineate further waves, it was decided that the low number of deaths along with moderation in number of hospitalizations characterized a "post-acute" phase of the pandemic, starting at `r as.Date(casewavedef$enddate[7])` and extending through the end of data collection, December 1, 2024. This was driven by a number of Omicron subvariants prevalent at the time and to this day. @omicron
+
 
 **State performance**
 
-XXX
+U.S. states exhibited wide variation in case, hospitalization, and death rates relative to each other in each wave, with the relative performance changing from earlier to later waves as regional public health responses diverged. 
+
+For instance, New England states and mid-Atlantic states experienced the greatest burden in terms of deaths and hospitalizations during the first wave of the pandemic, being highly urban, older, and globally connected than many other areas of the country (see Table 1 below). The top five states in terms of deaths per population were, in order, NJ, CT, MA, DC, RI. Seasonal change--i.e., people moving inside at greater rates in hotter months--brought higher mortality to southern and southwestern states in the subsequent wave of 2020, with MS, AZ, FL, SC, and TX occupying the top five spots through September of that year. The next wave that coincided with the winter of 2020/21 saw	SD, ND, OK, AR, and NM experience the worst state death rates, suggesting that state-level pandemic response was beginning to play a role in outcomes. By the final phase of the pandemic (the Omicron subvariants that began to predominate in spring 2022) this pattern was shown to persist, with states such as Kentucky and West Virginia consistently occupying the top five rankings of COVID-19-related mortality while states initially affected the most--many in New England and the mid-Atlantic--no longer appearing.
+
+```{r fig.align='center', echo=FALSE, warning=FALSE}
+
+#, fig.subcap=''
+
+kable(statedeathtab, caption = "State-level COVID-19 mortality rank, by wave start date")
+
+```
+
 
 **Virulence**
 
-XXX
+The predominant strain of COVID-19 that characterized each wave became less virulent, comparing earlier waves to later waves. The original wave resulted in a mortality : case ratio of [] while the first wave of Omicron exhibited a ratio of []. By the approaching-endemicity phase of the pandemic, which we call post-acute, the ratio had become __ when observing the period March 26, 2022 to October 29, 2022, for which data reporting is robust. 
 
 # Discussion {#sec-discussion}
 
