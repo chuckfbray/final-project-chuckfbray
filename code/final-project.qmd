@@ -8,7 +8,7 @@ author:
   - Charles Bray\thanks{SM Candidate, Department of Biostatistics, Harvard TH Chan School of Public Health, \href{mailto:bray@hcp.med.harvard.edu}{\texttt{bray@hcp.med.harvard.edu}}}
 
 abstract: |
-  \noindent Purpose: The abstract provides a concise summary of your project, including its objectives, key findings, and significance. Write this section last, after completing all other sections, to accurately reflect your project’s focus and main results. Guidelines: Limit this section to 150-200 words. Briefly outline the purpose of your study, the approach you used, and the primary results and conclusions. The abstract should be clear, succinct, and give readers an immediate understanding of what your project entails.
+  \noindent This study aimed to assess the evolution of the SARS-CoV 2 virus, its associated disease burden, and the public health response. Data from the CDC on hospitalizations, deaths, and cases were analyzed and divided into phases based on these metrics, and a novel approach using a sliding window of 9 weeks was developed to define pandemic waves. Seven waves of the pandemic were identified from January 2020 to December 2024, over which case, hospitalization, and death rates varied across states and regions. The virulence of COVID-19 decreased over time, with the mortality-to-case ratio dropping from 0.06 in the first wave to 0.01 in later waves while the mortality-to-hospitalization ratio dropped from 0.5 to 0.1. This study highlights the importance of standardized definitions for pandemic phases and provides insights into regional public health responses and their consequences. These definitions and associated state-level performance measures provide valuable historical context for future pandemic readiness.
 abstractspacing: double
 keywords: R, \LaTeX, Quarto
 appendix: false
@@ -42,6 +42,8 @@ editor:
 
 ```{r, warning=FALSE, include=FALSE}
 
+### prep libraries and data
+
 library(magrittr)
 library(dplyr)
 library(data.table)
@@ -60,72 +62,88 @@ statedeathtab <-
 
 names(statedeathtab) <- gsub("state_","Wave starting ",names(statedeathtab))
 
+virulence <- fread("../figs/Table3.csv")
+
 ```
 
 \newpage
 
 # Introduction {#sec-introduction}
 
-The SARS-2 COVID-19 pandemic has been a major cause of death and disability in the United States and globally since the first months of 2020. Over 1 million deaths are reported through time of writing in the United States, according to the World Health Organization, while millions are suspected to have diminished quality of life from the still poorly-understood set of conditions associated with "long COVID". @WHOcite] @longCovid. It is popular to describe the net consequences of the pandemic but less so to assess the evolution of the virus and the evolving ability of our public health and medical sectors to respond to the morbidity and mortality it caused, as measured through deaths, hospitalizations, and rates of infection.
+The COVID-19 pandemic, in which the world saw the emergence of an acute upper respiratory infection caused by the novel coronavirus SARS-CoV-2, has been a major cause of death and disability in the United States and globally since the first months of 2020. Over 1 million deaths are reported through time of writing in the United States, according to the World Health Organization, while millions are suspected to have diminished quality of life from the still poorly-understood set of conditions associated with "long COVID". (@WHOcite) (@longCovid). It is popular to describe the net consequences of the pandemic but less so to assess the evolution of the virus and the evolving ability of our public health and medical sectors to respond to the morbidity and mortality it caused, as measured through deaths, hospitalizations, and rates of infection.
 
-Systematizing the way in which we assess individual phases of a pandemic is important for several reasons:
+Systematizing the way in which we assess individual phases of a pandemic is important for several reasons: \newline
 
 *Standardized definitions*: Researchers can compare data and findings in a consistent way rather than contrasting conclusions that rely on novel estimations of pandemic phases.
 
 *Inter-regional comparability*: With consistent wave definitions, it is possible to compare regional or state-level responses within the U.S. This allows for the identifcation of what works well and what needs to improve as far as local public health responses (e.g., were school lock-downs too long or too short in certain areas, what was the effect of masking during each phase of the pandemic, etc.).
 
-*Data Stratification*: Identifying waves allows for stratified analysis, where key metrics like case counts, hospitalizations, and deaths can be studied in relation to specific contextual factors such as the emergence of new variants, policy changes, or healthcare capacity.
-
 *Clear historical record of pandemic trajectory*: By clearly defining waves, a framework is created for understanding how the pandemic changed over time, which allows us to contextualize the public health response based on how the virus's behavior and human responses evolved.
 
-*Future pandemic readiness*: The identification of distinct waves gives public health officials and other relevant decisionmakers historical context that leads to better planning and resource allocation in anticipation of future COVID-19 surges or other viruses that may behave similarly.
+*Future pandemic readiness*: The identification of distinct waves gives public health officials and other relevant decisionmakers historical context that leads to better planning and resource allocation in anticipation of future COVID-19 surges or other viruses that may behave similarly. \newline
 
-Some investigators have aimed to address this gap in knowledge by defining "waves", or distinct phases characterizing the COVID-19 pandemic by the pattern or trajectory of infection as well as the predominant viral strain. For instance, Iran's experience of the pandemic was characterized by five distinct phases according to Amin et al. (2022) through the end of 2022, as defined by public health communications and increases in case counts following times of stability. @Iranwaves Another group of researchers in Chile defined the start and end of waves based on sustained increase or decrease as well as case rates achieving a certain threshold. @Chilewaves Other researchers employed more sophisticated methods, including Break Least Squares, to define two waves in 2020 in North America each lasting roughly 50 days. @covidtimecite However, little research exists to clarify times of transition between waves of COVID-19 in the United States, strictly speaking.
+Some investigators have aimed to address this gap in knowledge by defining "waves", or distinct phases characterizing the COVID-19 pandemic by the pattern or trajectory of infection as well as the predominant viral strain. For instance, Iran's experience of the pandemic was characterized by five distinct phases according to Amin et al. (2022) through the end of 2022, as defined by public health communications and increases in case counts following times of stability. (@Iranwaves). Another group of researchers in Chile defined the start and end of waves based on sustained increase or decrease as well as case rates achieving a certain threshold. (@Chilewaves). Other researchers employed more sophisticated methods, including Break Least Squares, to define two waves in 2020 in North America each lasting roughly 50 days. (@covidtimecite). However, little research exists to clarify times of transition between waves of COVID-19 in the United States, strictly speaking.
 
 To this end, it is necessary to provide a conceptualization of the distinct stages of the COVID-19 pandemic as it affected the US population, as well as the relative performance of different areas within the US. This paper aims to describe the changing dynamics of the novel coronavirus as such.
 
-\newpage
-
 # Methods {#sec-methods}
 
-Data were obtained from the Center for Disease Control and Prevention (CDC) via API, comprising hospitalizations, deaths, and cases associated with COVID-19 infection and reported weekly at the US state-level @CDCdata. States were defined as the 50 standard US states along with DC and Puerto Rico, for a total of 52 geographical units; states were assigned to regions of the US based on a classification scheme provided on the BST 260 course GitHub repository @rafalab.
+Data were obtained from the Center for Disease Control and Prevention (CDC) via API, comprising hospitalizations, deaths, and cases associated with COVID-19 infection and reported weekly at the US state-level. (@CDCdata). States were defined as the 50 standard US states along with DC and Puerto Rico, for a total of 52 geographical units; states were assigned to regions of the US based on a classification scheme provided on the BST 260 course GitHub repository. (@rafalab).
 
 The study proceeds in three parts. First, the COVID-19 pandemic was split broadly into different phases based on counts of cases, deaths, and hospitalizations across regions of the United States. Following this, the performance of individual US states was described along these measures within each determined wave. Finally, the nature of COVID-19 strains (their virulence and/or strain on hospitals) is determined by comparing the evolution of different measures from early to later waves.
 
 In order to describe the trajectory of the COVID-19 pandemic, a novel approach to defining breakpoints between infection regimes (or "waves" of COVID-19) is developed. A sliding window of 9 weeks (or roughly 2 months) was applied to each measure (hospitalizations, cases, and deaths) within region, in which window were determined if the center value (the 5th index) of the window was a maximum or minimum value. Then, if at least half of the regions reporting data (typically, 10 regions) experienced a local minimum within 5 weeks of each other (or, half the minimum/maximum search window), the current wave was determined to have ended. Instead of over-weighting high-population regions, this approach appreciates potential regional segmentation of the pandemic when evaluating country-level phases of viral spread.
 
-Prior to algorithm development, (1) break least squares as well as (2) Markov Regime Switching (MRS) models were considered (https://pmc.ncbi.nlm.nih.gov/articles/PMC10847870). Ultimately, the complexity of these models–and in the case of MRS, the infeasibility of constraining wave definitions to just two regimes–motivated the development of this data-driven identification strategy. Other, more simple, strategies such as that featured in Ayala et al., 2021, were also considered but determined to be too inflexible. Namely, hard thresholds for number of cases per population were used in defining transitions in infectious regimes, which were seen here as not considerate of changes in testing ubiquity and changing virulence of different generations of COVID-19.
+Prior to algorithm development, (1) break least squares as well as (2) Markov Regime Switching (MRS) models were considered (@covidtimecite). Ultimately, the complexity of these models–and in the case of MRS, the infeasibility of constraining wave definitions to just two regimes–motivated the development of this data-driven identification strategy. Other, more simple, strategies such as that featured in Ayala et al., 2021 (@Chilewaves), were also considered but determined to be too inflexible. Namely, hard thresholds for number of cases per population were used in defining transitions in infectious regimes, which were seen here as not considerate of changes in testing ubiquity and changing virulence of different generations of COVID-19.
 
 # Results {#sec-results}
 
-**Waves**
+**Defining waves**
 
-The COVID-19 pandemic in the US was divided into 7 waves from January 1, 2020 through December 1, 2024 according to case and hospitalization rates. The choice of these two measures as opposed to deaths was determined to be appropriate based on the persistent lag of deaths data relative to cases and hospitalizations, and the fact that death timing relative to time of infection is known to exhibit much greater variance than symptoms or hospitalization timing relative to time of infection @deathtiming. See Figure 1 below for a visualization of wave boundaries, where solid black dots indicate local minima in per-population rates of cases or hospitalizations by region, while black crosses indicate local maxima. Each dotted red line shows the inter-regional wave cutoff (where one wave ends and another begins); there is no assumed interim period between waves (i.e., one wave ends the day before another begins).
+The COVID-19 pandemic in the US was divided into 7 waves from January 1, 2020 through December 1, 2024 according to case and hospitalization rates. The choice of these two measures as opposed to deaths was determined to be appropriate based on the persistent lag of deaths data relative to cases and hospitalizations, and the fact that death timing relative to time of infection is known to exhibit much greater variance than symptoms or hospitalization timing relative to time of infection. (@deathtiming). See Figure 1 below for a visualization of wave boundaries, where solid black dots indicate local minima in per-population rates of cases or hospitalizations by region, while black crosses indicate local maxima. Each dotted red line shows the inter-regional wave cutoff (where one wave ends and another begins); there is no assumed interim period between waves (i.e., one wave ends the day before another begins).
 
 ![Definition of candidate COVID-19 waves based on regional minima and maxima]("../figs/Figure1.png"){fig-align="center"}
 
-The first wave occurred roughly March 2020 to June 6, 2020, which we classify as the "Originator" wave. This was succeeded by the Second and Third waves, which occurred `r casewavedef$begindate[2]` to `r as.Date(casewavedef$enddate[2])` and `r casewavedef$begindate[3]` to `r as.Date(casewavedef$enddate[3])`, respectively. The fourth wave, which we can call the Delta wave based on known speciation @Deltatime, occurred `r casewavedef$begindate[4]` to `r as.Date(casewavedef$enddate[4])`. This was followed by the extremely transmissible Omicron variant, which characterized the wave lasting `r casewavedef$begindate[5]` to `r as.Date(casewavedef$enddate[5])`. Finally, while there continued to be local minima and maxima that could be considered to delineate further waves, it was decided that the low number of deaths along with moderation in number of hospitalizations characterized a "post-acute" phase of the pandemic, starting at `r as.Date(casewavedef$enddate[7])` and extending through the end of data collection, December 1, 2024. This was driven by a number of Omicron subvariants prevalent at the time and to this day. @omicron
+The first wave occurred roughly March 2020 to June 6, 2020, which we classify as the "Originator" wave. This was succeeded by the Second and Third waves, which occurred `r casewavedef$begindate[2]` to `r as.Date(casewavedef$enddate[2])` and `r casewavedef$begindate[3]` to `r as.Date(casewavedef$enddate[3])`, respectively. The fourth wave, which we can call the Delta wave based on known speciation (@Deltatime), occurred `r casewavedef$begindate[4]` to `r as.Date(casewavedef$enddate[4])`. This was eventually followed by the extremely transmissible Omicron variant, which characterized the wave lasting `r casewavedef$begindate[6]` to `r as.Date(casewavedef$enddate[6])`. Finally, while there continued to be local minima and maxima that could be considered to delineate further waves, it was decided that the low number of deaths along with moderation in number of hospitalizations, and regional segmentation in terms of dispersion around nationwide wave end dates (see Figure 2), collectively characterized a "post-acute" phase of the pandemic, starting at `r as.Date(casewavedef$enddate[7])` and extending through the end of data collection, December 1, 2024. This was driven by vaccination efforts and milder Omicron subvariants prevalent at the time and to this day. (@omicron). \newline
 
+![Dispersion of regional minima and maxima about national wave end dates (cases)]("../figs/Figure2.png"){fig-align="center"}
 
-**State performance**
+**State performance** 
 
 U.S. states exhibited wide variation in case, hospitalization, and death rates relative to each other in each wave, with the relative performance changing from earlier to later waves as regional public health responses diverged. 
 
-For instance, New England states and mid-Atlantic states experienced the greatest burden in terms of deaths and hospitalizations during the first wave of the pandemic, being highly urban, older, and globally connected than many other areas of the country (see Table 1 below). The top five states in terms of deaths per population were, in order, NJ, CT, MA, DC, RI. Seasonal change--i.e., people moving inside at greater rates in hotter months--brought higher mortality to southern and southwestern states in the subsequent wave of 2020, with MS, AZ, FL, SC, and TX occupying the top five spots through September of that year. The next wave that coincided with the winter of 2020/21 saw	SD, ND, OK, AR, and NM experience the worst state death rates, suggesting that state-level pandemic response was beginning to play a role in outcomes. By the final phase of the pandemic (the Omicron subvariants that began to predominate in spring 2022) this pattern was shown to persist, with states such as Kentucky and West Virginia consistently occupying the top five rankings of COVID-19-related mortality while states initially affected the most--many in New England and the mid-Atlantic--no longer appearing.
+For instance, New England states and mid-Atlantic states experienced the greatest burden in terms of deaths and hospitalizations during the first wave of the pandemic, being highly urban, older, and globally connected than many other areas of the country. The states of the South Central and Southeast, on the other hand, had the worst mortality in the second as well as latest waves (see Figure 3 below). 
+![State-level mortality by wave, regionally grouped]("../figs/Figure3.png"){fig-align="center"}
+
+
+The top five states in terms of deaths per population were, in order, NJ, CT, MA, DC, RI. Seasonal change--i.e., people moving inside at greater rates in hotter months--brought higher mortality to southern and southwestern states in the subsequent wave of 2020, with MS, AZ, FL, SC, and TX occupying the top five spots through September of that year. The next wave that coincided with the winter of 2020/21 saw	SD, ND, OK, AR, and NM experience the worst state death rates, suggesting that state-level pandemic response was beginning to play a role in outcomes. By the final phase of the pandemic (the Omicron subvariants that began to predominate in spring 2022) this pattern was shown to persist, with states such as Kentucky and West Virginia consistently occupying the top five rankings of COVID-19-related mortality while states initially affected the most--many in New England and the mid-Atlantic--no longer appearing.
 
 ```{r fig.align='center', echo=FALSE, warning=FALSE}
 
 #, fig.subcap=''
 
-kable(statedeathtab, caption = "State-level COVID-19 mortality rank, by wave start date")
+kable(statedeathtab, caption = "State-level COVID-19 mortality rank (top 10), by wave start date")
 
 ```
 
-
 **Virulence**
 
-The predominant strain of COVID-19 that characterized each wave became less virulent, comparing earlier waves to later waves. The original wave resulted in a mortality : case ratio of [] while the first wave of Omicron exhibited a ratio of []. By the approaching-endemicity phase of the pandemic, which we call post-acute, the ratio had become __ when observing the period March 26, 2022 to October 29, 2022, for which data reporting is robust. 
+The predominant strain of COVID-19 that characterized each wave became less virulent, comparing earlier waves to later waves. The original wave resulted in a mortality : case ratio of `r round(virulence$deathpercase[1],2)` while the first wave of Omicron exhibited a ratio of `r round(virulence$deathpercase[6],2)`. By the approaching-endemicity phase of the pandemic, which we call post-acute, the ratio had become `r round(virulence$deathpercase[7],2)` when observing the period March 26, 2022 to October 29, 2022, for which data reporting is robust. The corresponding hospitalization : case rate ratios were, respectively, `r round(virulence$deathperhosp[1],2)`, `r round(virulence$deathperhosp[6],2)`, and `r round(virulence$deathperhosp[7],2)`. See Figure 4 below for trendlines of virulence.
+
+![COVID-19 virulence by wave]("../figs/Fig4.png"){fig-align="center"}
 
 # Discussion {#sec-discussion}
 
-DISCUSSION.
+This study provides a novel framework for understanding the progression of the COVID-19 pandemic in the United States by defining waves using a data-driven approach and evaluating regional and state-level variations in pandemic dynamics. By identifying seven distinct waves between January 2020 and December 2024, the findings contribute to a nuanced understanding of how COVID-19 evolved over time in terms of case rates, hospitalizations, and virulence.\newline
+Implications of findings
+The definition of pandemic waves using a sliding window approach highlights the importance of incorporating regional heterogeneity when evaluating national-level patterns. Unlike prior studies that used fixed thresholds (e.g., Ayala et al., 2021) or complex statistical models (e.g., Bali Swain, 2020), this method allowed for a more adaptable characterization of transitions between waves. The observed alignment of regional minima and maxima underscores the dynamic relationship between viral evolution, public health interventions, and sociocultural factors across the United States.
+
+The analysis of state-level mortality and hospitalization trends further illustrates significant regional disparities, with urbanized states like New Jersey and Connecticut experiencing the highest mortality during the early waves, while southern states such as Mississippi and Kentucky bore the brunt of later waves. This shift probably is reflective of the differences in pandemic response measures, and in particular vaccination rates, or healthcare infrastructure and population behaviors.
+The findings also demonstrate a clear decline in virulence over the course of the pandemic, with mortality-to-case and hospitalization-to-case ratios decreasing from the initial wave to the post-acute phase dominated by Omicron subvariants. This trend aligns with previous research suggesting that increased population immunity and the reduced severity of later variants contributed to a milder disease profile (Baud et al., 2020; CDC, 2022).\newline
+Implications
+These results have critical implications for public health planning and pandemic preparedness. The adaptability of the wave-detection framework offers a potential tool for monitoring future pandemics, particularly in scenarios where regional variations and evolving virus characteristics must be accounted for. Additionally, the state-level disparities in outcomes emphasize the need for targeted interventions to address vulnerabilities in specific regions, especially during the early phases of a pandemic when resources are limited.\newline
+Limitations
+Several limitations of this study warrant discussion. First, the reliance on CDC-reported data may introduce biases related to underreporting or inconsistencies in data collection across states and time periods. Second, the study's wave-detection algorithm, while robust, is inherently sensitive to the choice of parameters (e.g., window size) and may not capture subtle transitions between waves. Third, this analysis does not directly incorporate external factors such as policy changes, socioeconomic variables, or mobility data, which could further contextualize the observed patterns.\newline
+Future Directions
+Future research should aim to refine the wave-detection methodology by integrating real-time data streams and machine learning techniques to enhance predictive capabilities. Additionally, longitudinal studies that incorporate demographic and behavioral data could provide deeper insights into the drivers of regional disparities. Finally, examining the impact of specific public health interventions and vaccination campaigns on wave dynamics would offer valuable lessons for managing future pandemics.
+

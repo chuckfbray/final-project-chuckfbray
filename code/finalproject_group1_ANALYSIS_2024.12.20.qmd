@@ -77,7 +77,7 @@ wavedat <- wavedat |>
   ungroup()
 
 
-wavedat |> dplyr::rename(Region=region_name) |> filter(date>=as.Date("2020-03-01")) |>
+wavedat |> dplyr::rename(Region=region_name) |> filter(date>=as.Date("2020-03-01") & outcome!="Deaths") |>
   ggplot(aes(date, `Rate per 100,000 population`, color = Region)) +
   geom_line() +
   geom_vline(aes(xintercept=as.Date(transmax), y=0), color="red", linetype=3) +
@@ -93,7 +93,7 @@ wavedat |> dplyr::rename(Region=region_name) |> filter(date>=as.Date("2020-03-01
   geom_label(aes(x=as.Date(transmax),
                  y=case_when(outcome=="Deaths"~35, outcome=="Cases"~6000, T~175),
                  label=as.Date(transmax)), size=2, color="black", check_overlap = TRUE,
-             position = position_dodge()) +
+             position = position_dodge2()) +
   coord_cartesian(xlim=c(as.Date("2020-03-01"), as.Date("2024-12-01")))
   
   
@@ -180,66 +180,6 @@ ggplot(variation_min %>% dplyr::filter(outcome!="Deaths" & begindate < as.Date("
 ggsave("../figs/Figure2.png", width=6, height=8)
 
 
-
-## Determine degrees of change by date, and inflection points
-# changedat <-
-#   dat |> 
-#  dplyr::group_by(date, region) |>
-#  dplyr::summarise(cases=sum(cases,na.rm = T),
-#             hosp=sum(hosp,na.rm = T),
-#             deaths=sum(deaths,na.rm = T),
-#             population=sum(population)) |>
-#   ungroup() |>
-#   mutate(cases = cases/population*100000,
-#   hosp = hosp/population*100000,
-#   deaths = deaths/population*100000) |>
-#   dplyr::select(date, cases, hosp, deaths, region) |>
-#   # smooth deaths per cases across regions...
-#   pivot_longer(c(cases, deaths, hosp), values_to = "Rate per 100,000 population",
-#                names_to = "outcome") |>
-#   mutate(outcome=str_to_title(outcome),
-#          outcome=ifelse(outcome=="Hosp", "Hospitalizations", outcome)) |>
-#   # xxx
-#   arrange(region, outcome, date) |>
-#   dplyr::group_by(region, outcome) |>
-#   mutate(rowdate = row_number(),
-#          pctchange = ifelse(row_number()>1 & lag(`Rate per 100,000 population`)>0,
-#                                    (`Rate per 100,000 population` - lag(`Rate per 100,000 population`))/
-#                                      lag(`Rate per 100,000 population`),
-#                                    0),
-#          pctchange2 = ifelse(row_number()>2 & lag(pctchange)>0,
-#                                    (pctchange - lag(pctchange))/
-#                                      lag(pctchange),
-#                                    0)
-#          ) |>
-#   ungroup()
-
-# make moving avg pct change and plot...
-# changedat |>
-#   # % change
-#   dplyr::group_by(region, outcome) |> mutate(pctchange_roll = zoo::rollmean(pctchange, k=3, fill=NA)) |> ungroup() |>
-#   ggplot(aes(date, pctchange_roll, color = region)) +
-#   geom_line() +
-#   facet_wrap(~outcome, nrow = 3, scales = "free_y") +
-#   scale_x_date(date_breaks = "3 months", date_labels ="%Y %b") +
-#   theme(axis.text.x = element_text(angle=90)) +
-#   ## shade COVID-19 strain eras...
-#   annotate("rect", xmin = as.Date("2020-01-01"), xmax = as.Date("2020-06-15"),
-#            ymin = -Inf, ymax = Inf, fill = "red", alpha = 0.2) +
-#   annotate("rect", xmin = as.Date("2020-06-15"), xmax = as.Date("2021-05-30"),
-#            ymin = -Inf, ymax = Inf, fill = "darkorange", alpha = 0.2) +
-#   annotate("rect", xmin = as.Date("2021-05-30"), xmax = as.Date("2021-11-30"),
-#            ymin = -Inf, ymax = Inf, fill = "maroon", alpha = 0.2) +
-#   annotate("rect", xmin = as.Date("2021-11-30"), xmax = as.Date("2022-03-30"),
-#            ymin = -Inf, ymax = Inf, fill = "blue", alpha = 0.2) +
-#   annotate("rect", xmin = as.Date("2022-03-30"), xmax = as.Date("2024-12-31"),
-#            ymin = -Inf, ymax = Inf, fill = "darkgreen", alpha = 0.2)  +
-#   ylab("Percentage change in rate, 3-week rolling average") +
-#   xlab("Date, weeks")
-# 
-# ggsave("../out/Figure2.png")
-
-
 ## tabulate overall nos by period... using Cases.
 casewavedef <- variation_min %>% dplyr::filter(outcome=="Cases" & begindate<as.Date("2022-10-30")) %>%
   dplyr::rename(regional_min=date) %>%
@@ -302,7 +242,7 @@ statelevel_Deaths %>%
         legend.title = element_blank()
     ) + ylab("Deaths per 100,000 population") + xlab("US geographical region")
 
-ggsave("../figs/Figure2.png", width=6, height=8)
+ggsave("../figs/Figure3.png", width=6, height=8)
 
 
 ### rank states by death rate, for each of the seven waves
@@ -341,8 +281,7 @@ statelevel_Deaths_Hosps_Cases <-
          hosprate = hospsum/meanpop,
          
          deathpercase = deathrate / caserate,
-         deathperhosp = deathrate / hosprate,
-         hosppercase = hosprate / caserate)
+         deathperhosp = deathrate / hosprate)
 
 
 regionlevel_Deaths_Hosps_Cases <-
@@ -358,11 +297,38 @@ regionlevel_Deaths_Hosps_Cases <-
          hosprate = hospsum/meanpop,
          
          deathpercase = deathrate / caserate,
-         deathperhosp = deathrate / hosprate,
-         hosppercase = hosprate / caserate)
+         deathperhosp = deathrate / hosprate)
+
+overall_Deaths_Hosps_Cases <-
+  statelevel %>%
+  group_by(begindate, enddate) %>%
+  summarise(deathsum = sum(deaths,na.rm=T),
+            casesum = sum(cases,na.rm=T),
+            hospsum = sum(hosp,na.rm=T),
+            meanpop = mean(population)) %>%
+  ungroup() %>%
+  mutate(deathrate = deathsum/meanpop,
+         caserate = casesum/meanpop,
+         hosprate = hospsum/meanpop,
+         
+         deathpercase = deathrate / caserate,
+         deathperhosp = deathrate / hosprate)
 
 
 ###
-fwrite(xxx, "../figs/Table3.csv")
+fwrite(overall_Deaths_Hosps_Cases, "../figs/Table3.csv")
+
+
+overall_Deaths_Hosps_Cases %>%
+  select(begindate, deathpercase, deathperhosp) %>% 
+  rename(`Deaths per hospitalization`=deathperhosp, `Deaths per case`=deathpercase) %>%
+  pivot_longer(cols=c(`Deaths per case`, `Deaths per hospitalization`), names_to="Virulence measure") %>% filter(value!=Inf) %>%
+  ggplot(aes(x=begindate, y=value, color=`Virulence measure`)) +
+  geom_line(aes(group=`Virulence measure`)) +
+  xlab("Wave starting date") + ylab("Ratio") +
+  theme(legend.position = "top")
+
+ggsave("../figs/Fig4.png")
+
 
 ```
